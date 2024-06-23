@@ -16,7 +16,7 @@ public class IkLegSolver : MonoBehaviour
     public GameObject target;
 
     //constraints?
-    private int joint3Limit = -40;
+    private int joint3Limit = -60;
 
     //internal measurements
     private float upperLegLen;

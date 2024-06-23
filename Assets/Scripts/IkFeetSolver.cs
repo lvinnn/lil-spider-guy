@@ -3,7 +3,6 @@ using System.Collections;
 using Cinemachine.Utility;
 using UnityEditor;
 using UnityEngine;
-using Vector2 = System.Numerics.Vector2;
 
 public class IkFeetSolver : MonoBehaviour
 {
@@ -12,6 +11,7 @@ public class IkFeetSolver : MonoBehaviour
     public bool isSafe;
     public GameObject safeZone;
     public bool isMoving; //this foot is moving
+    public bool isHovering;
     public IkFeetSolver oppFoot;
 
     private Vector3 anchorPosition;
@@ -19,13 +19,14 @@ public class IkFeetSolver : MonoBehaviour
 
     //spider parameters
     private float SafeRadius { get; } = 2f;
-    private float SafeAngle { get; } = 40;
+    private float SafeAngle { get; } = 40f;
     private float IdleRadius { get; } = 0.5f;
     private float InitialWalkSpeed { get; } = 30f;
     private float InitialIdleResetSpeed { get; } = 4f;
     private float StepAngle { get; } = 80f;
     private float walkSpeed;
     private float idleResetSpeed;
+    private float NumRays { get; } = 5f;
 
     //debugging
     private Vector3 gizmosTargetRed;
@@ -53,23 +54,22 @@ public class IkFeetSolver : MonoBehaviour
 
     }
 
-    void Update()
+    private void Update()
     {
         //time stuff
         walkSpeed = InitialWalkSpeed * SpeedController.instance.factor;
         idleResetSpeed = InitialIdleResetSpeed * SpeedController.instance.factor;
 
         //check if this leg is moving
-        if (!isMoving)
+        if (!isMoving && !isHovering)
             transform.position = anchorPosition;
         
         //checks if foot is outside the safe zone
         var safePosition = safeZone.transform.position;
         var distFromSafe = Vector3.Distance(safePosition, anchorPosition);
-        // isSafe = distFromSafe <= SafeRadius;
 
         //check if another leg is moving
-        if (!checkIfSafe() && (oppFoot.isMoving || !LegManager.Instance.GetAnyLegMoving()))
+        if (!CheckIfSafe() && (oppFoot.isMoving || !LegManager.Instance.GetAnyLegMoving()))
         {
             //find point inside safe zone biased towards target direction
             var tVector = (SpiderController.instance.target);
@@ -89,8 +89,9 @@ public class IkFeetSolver : MonoBehaviour
     }
 
 
-    private bool checkIfSafe()
+    private bool CheckIfSafe()
     {
+        if (isHovering) return false;
         var arm = armature.transform.position;
         var toFoot = (transform.position - arm).ProjectOntoPlane(armature.transform.up);
         var toSafeZone = (safeZone.transform.position - arm).ProjectOntoPlane(armature.transform.up);
@@ -98,8 +99,8 @@ public class IkFeetSolver : MonoBehaviour
         var angle = Vector3.Angle(toFoot, toSafeZone);
 
         var distToArmature = Vector3.Distance(transform.position, arm);
-        
-        return angle < SafeAngle && (toSafeZone.magnitude-SafeRadius < distToArmature && distToArmature < toSafeZone.magnitude+SafeRadius);
+        isSafe = angle < SafeAngle && (toSafeZone.magnitude-SafeRadius < distToArmature && distToArmature < toSafeZone.magnitude+SafeRadius);
+        return isSafe;
     }
     
 
@@ -118,26 +119,64 @@ public class IkFeetSolver : MonoBehaviour
 
         var horizontalDir=
             (armature.transform.position - safeZone.transform.position).ProjectOntoPlane(armature.transform.up).normalized;
-        var horizontalPos = (safeZone.transform.position - armature.transform.position)*1.2f + armature.transform.position - armature.transform.up*2;
-        handleStart = horizontalPos;
-        handleEnd = handleStart + (horizontalDir)*5;
-        
-        if (Physics.Raycast(raySource + armature.transform.up*3, -armature.transform.up, out var hit, 5, layer) ||
-           Physics.Raycast(horizontalPos, horizontalDir, out hit, 5, layer)) //horizontal ray
+        var horizontalPos = (safeZone.transform.position - armature.transform.position)*1.2f + armature.transform.position;
+        handleStart = horizontalPos; //handles drawline
+        handleEnd = handleStart + (horizontalDir)*5; //handles drawline
+
+        Vector3? point = null;
+        if (Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer) || //horizontal ray above
+            FindWire(raySource, out point) || // straight down
+            Physics.Raycast(horizontalPos, horizontalDir, out hit,
+                (armature.transform.position - safeZone.transform.position).magnitude-SafeRadius, layer)) //horizontal ray underneath
         {
             LegManager.Instance.SetMoving(true);
             isMoving = true;
-            gizmosTargetRed = hit.point;
-            StartCoroutine(MoveLeg(hit.point, legSpeed));
+            gizmosTargetRed = point != null ? point.Value : hit.point;
+            StartCoroutine(MoveLeg(gizmosTargetRed, legSpeed));
+            isHovering = false;
+            Debug.Log("not hovering anymore");
+            //found a spot to stand on
         }
         else
         {
-            var pos = (armature.transform.position + safeZone.transform.position)/2 - armature.transform.up*1.5f;
-            StartCoroutine(MoveLeg(pos, legSpeed));
+            var pos = armature.transform.position + (safeZone.transform.position - armature.transform.position)*.25f - armature.transform.up*1.5f;
+            gizmosTargetWhite = pos;
+            if ((transform.position - pos).magnitude > 1)
+                StartCoroutine(MoveLeg(pos, legSpeed));
+            isHovering = true;
+            Debug.Log("is hovering");
+            //LEG IS HOVERING
         }
     }
 
 
+    private bool FindWire(Vector3 raySource, out Vector3? rayPoint)
+    {
+        var startPoint = Quaternion.AngleAxis(SafeAngle/2,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+        var endPoint = Quaternion.AngleAxis(-SafeAngle/2,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+
+        var inc = 0f;
+        var prev = .5f;
+        var count = 0;
+        while (inc < 1)
+        {
+            var a = ((count % 2) * 2 - 1) * inc;
+            var source = Vector3.Lerp(startPoint, endPoint, prev + a);
+            prev += a;
+            count++;
+            if (Physics.Raycast(source + armature.transform.up * 3, -armature.transform.up, out var hit, 5, layer))
+            {
+                rayPoint = hit.point;
+                return true;
+            }
+            inc += 1/NumRays;
+        }
+
+        rayPoint = null;
+        return false;
+    }
+    
+    
 
     //change later to add sin wave?
     private IEnumerator MoveLeg(Vector3 targetPosition, float legSpeed)
@@ -174,6 +213,9 @@ public class IkFeetSolver : MonoBehaviour
         
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(gizmosTargetRed, .5f);
+        
+        Gizmos.color = Color.white;
+        Gizmos.DrawSphere(gizmosTargetWhite, .5f);
 
         Handles.color = Color.magenta;
         Handles.DrawAAPolyLine(handleStart, handleEnd);
