@@ -3,6 +3,7 @@ using System.Collections;
 using Cinemachine.Utility;
 using UnityEditor;
 using UnityEngine;
+using Vector2 = System.Numerics.Vector2;
 
 public class IkFeetSolver : MonoBehaviour
 {
@@ -18,6 +19,7 @@ public class IkFeetSolver : MonoBehaviour
 
     //spider parameters
     private float SafeRadius { get; } = 2f;
+    private float SafeAngle { get; } = 40;
     private float IdleRadius { get; } = 0.5f;
     private float InitialWalkSpeed { get; } = 30f;
     private float InitialIdleResetSpeed { get; } = 4f;
@@ -29,6 +31,8 @@ public class IkFeetSolver : MonoBehaviour
     private Vector3 gizmosTargetRed;
     private Vector3 gizmosTargetBlue;
     private Vector3 gizmosTargetWhite;
+    private Vector3 handleStart;
+    private Vector3 handleEnd;
 
 
     private void Start()
@@ -62,10 +66,10 @@ public class IkFeetSolver : MonoBehaviour
         //checks if foot is outside the safe zone
         var safePosition = safeZone.transform.position;
         var distFromSafe = Vector3.Distance(safePosition, anchorPosition);
-        isSafe = distFromSafe <= SafeRadius;
+        // isSafe = distFromSafe <= SafeRadius;
 
         //check if another leg is moving
-        if (!isSafe && (oppFoot.isMoving || !LegManager.Instance.GetAnyLegMoving()))
+        if (!checkIfSafe() && (oppFoot.isMoving || !LegManager.Instance.GetAnyLegMoving()))
         {
             //find point inside safe zone biased towards target direction
             var tVector = (SpiderController.instance.target);
@@ -85,6 +89,20 @@ public class IkFeetSolver : MonoBehaviour
     }
 
 
+    private bool checkIfSafe()
+    {
+        var arm = armature.transform.position;
+        var toFoot = (transform.position - arm).ProjectOntoPlane(armature.transform.up);
+        var toSafeZone = (safeZone.transform.position - arm).ProjectOntoPlane(armature.transform.up);
+
+        var angle = Vector3.Angle(toFoot, toSafeZone);
+
+        var distToArmature = Vector3.Distance(transform.position, arm);
+        
+        return angle < SafeAngle && (toSafeZone.magnitude-SafeRadius < distToArmature && distToArmature < toSafeZone.magnitude+SafeRadius);
+    }
+    
+
     private void CastRay(Vector3 raySource, float legSpeed)
     {
         var toTarget = raySource - armature.transform.position;
@@ -99,10 +117,13 @@ public class IkFeetSolver : MonoBehaviour
         //find ground to step on
 
         var horizontalDir=
-            (armature.transform.position - safeZone.transform.position).ProjectOntoPlane(armature.transform.up);
+            (armature.transform.position - safeZone.transform.position).ProjectOntoPlane(armature.transform.up).normalized;
+        var horizontalPos = (safeZone.transform.position - armature.transform.position)*1.2f + armature.transform.position - armature.transform.up*2;
+        handleStart = horizontalPos;
+        handleEnd = handleStart + (horizontalDir)*5;
         
         if (Physics.Raycast(raySource + armature.transform.up*3, -armature.transform.up, out var hit, 5, layer) ||
-            Physics.Raycast(safeZone.transform.position - armature.transform.up*2, horizontalDir, out hit, 3.5f, layer)) //horizontal ray
+           Physics.Raycast(horizontalPos, horizontalDir, out hit, 5, layer)) //horizontal ray
         {
             LegManager.Instance.SetMoving(true);
             isMoving = true;
@@ -155,9 +176,6 @@ public class IkFeetSolver : MonoBehaviour
         Gizmos.DrawWireSphere(gizmosTargetRed, .5f);
 
         Handles.color = Color.magenta;
-        var start = safeZone.transform.position - armature.transform.up * 2;
-        var horizontalDir=
-            (armature.transform.position - safeZone.transform.position).ProjectOntoPlane(armature.transform.up);
-        Handles.DrawAAPolyLine(start, start + horizontalDir);
+        Handles.DrawAAPolyLine(handleStart, handleEnd);
     }
 }
