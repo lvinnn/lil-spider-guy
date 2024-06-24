@@ -74,74 +74,51 @@ public class SpiderController : MonoBehaviour
         walkSpeed = InitialWalkSpeed * SpeedController.instance.factor;
         turnSpeed = InitialTurnSpeed * SpeedController.instance.factor;
 
-
         AlignWorldUp();
-        
 
         if (!inAir)
         {
-            var feetUp = armature.transform.up;
+            //adjust body rotation based on feet
+            var feetUp = armature.transform.up; //default value
             var numHovering = LegManager.instance.GetNUmHovering();
-            if (numHovering <= 1) feetUp = MatchRotationWithFeet();
-            else if (numHovering <= 3) RotateToAnchoredLegs(numHovering);
-            else
-            {
-                Debug.Log("FREE BIRRRRDDD");
-                //FALL >:)
-            }
-            AdjustBodyPosition(feetUp);
             
-            #region wasd controls
-            var wasd = false;
-            if (Input.GetKey(KeyCode.W))
-            {
-                LookMove(mainCam.transform.forward);
-                wasd = true;
-            }
-            if (Input.GetKey(KeyCode.A))
-            {
-                LookMove(-mainCam.transform.right);
-                wasd = true;
-            }
-            if (Input.GetKey(KeyCode.S))
-            {
-                LookMove(-mainCam.transform.forward);
-                wasd = true;
-            }
-            if (Input.GetKey(KeyCode.D))
-            {
-                LookMove(mainCam.transform.right);
-                wasd = true;
-            }
-            if (!wasd) isWalking = false;
-            #endregion
+            if (numHovering <= 1) feetUp = MatchRotationWithFeet(); // if mostly on the ground
+            else if (numHovering <= 3) RotateToAnchoredLegs(numHovering);// if walked over an edge
+            else Debug.Log("FREE BIRRRRDDD"); // 0 feet on the ground
+            
+            //adjust body's position based on feet and ground
+            AdjustBodyPosition(feetUp);
 
-            #region jump
-            //jump controls
-            if (Input.GetKey(KeyCode.Space))
-            {
-                //charge up
-            }
-            if (Input.GetKeyUp(KeyCode.Space)) {
-                //JUMP!!
-                inAir = true;
-                
-                colliders[0].enabled = true;
-                armatureRigidBody.isKinematic = false;
-                var jumpForce = (armature.transform.forward + armature.transform.up) * JumpDist;
+            //wasd (sprint is in SpeedController maybe change that later)
+            MovementInputs();
 
-                foreach (var foot in LegManager.instance.footList)
-                {
-                    var footRigidBody = foot.GetComponent<Rigidbody>();
-                    foot.GetComponent<IkFeetSolver>().enabled = false;
-                    foot.GetComponent<BoxCollider>().enabled = true;
-                    footRigidBody.isKinematic = false;
-                    footRigidBody.AddForce(jumpForce);
-                }
-                
-                armatureRigidBody.AddForce(jumpForce);
-            }
-            #endregion
+            //no jump for now
+            // #region jump
+            // //jump controls
+            // if (Input.GetKey(KeyCode.Space))
+            // {
+            //     //charge up
+            // }
+            // if (Input.GetKeyUp(KeyCode.Space)) {
+            //     //JUMP!!
+            //     inAir = true;
+            //     
+            //     colliders[0].enabled = true;
+            //     armatureRigidBody.isKinematic = false;
+            //     var jumpForce = (armature.transform.forward + armature.transform.up) * JumpDist;
+            //
+            //     foreach (var foot in LegManager.instance.footList)
+            //     {
+            //         var footRigidBody = foot.GetComponent<Rigidbody>();
+            //         foot.GetComponent<IkFeetSolver>().enabled = false;
+            //         foot.GetComponent<BoxCollider>().enabled = true;
+            //         footRigidBody.isKinematic = false;
+            //         footRigidBody.AddForce(jumpForce);
+            //     }
+            //     
+            //     armatureRigidBody.AddForce(jumpForce);
+            // }
+            // #endregion
             
         }
 
@@ -163,6 +140,32 @@ public class SpiderController : MonoBehaviour
         // }
     }
 
+    private void MovementInputs()
+    {
+        var wasd = false;
+        if (Input.GetKey(KeyCode.W))
+        {
+            LookMove(mainCam.transform.forward);
+            wasd = true;
+        }
+        if (Input.GetKey(KeyCode.A))
+        {
+            LookMove(-mainCam.transform.right);
+            wasd = true;
+        }
+        if (Input.GetKey(KeyCode.S))
+        {
+            LookMove(-mainCam.transform.forward);
+            wasd = true;
+        }
+        if (Input.GetKey(KeyCode.D))
+        {
+            LookMove(mainCam.transform.right);
+            wasd = true;
+        }
+        if (!wasd) isWalking = false;
+    }
+    
     private void AlignWorldUp()
     {
         var alignmentSpeed = Vector3.Angle(worldUp.transform.up, armature.transform.up) * 5;
@@ -186,7 +189,6 @@ public class SpiderController : MonoBehaviour
 
         var targetR = Quaternion.LookRotation(Vector3.Cross(armature.transform.right, feetUp), feetUp);
         //rotate faster the further u have to rotate
-        // var rotateSpeed = Quaternion.Angle(armature.transform.rotation, targetR) * 15 * SpeedController.instance.factor; 
         armature.transform.rotation = Quaternion.RotateTowards(armature.transform.rotation, targetR, Time.deltaTime * turnSpeed);
         return feetUp;
     }
@@ -198,7 +200,6 @@ public class SpiderController : MonoBehaviour
             if (!f.isHovering) midPoint += f.transform.position;
 
         midPoint /= (4-numHovering);
-        gizmosVector4 = midPoint;
         midPoint -= armature.transform.position;
 
                 
@@ -216,33 +217,29 @@ public class SpiderController : MonoBehaviour
     private void AdjustBodyPosition(Vector3 feetUp)
     {
         //find distance between feet plane and armature
+            //I was gonna change this but it honestly works so I'll just leave it i guess??
             var bodyPosition = armature.transform.position;
-            var distance = 0f;
-            distance += (foot1.transform.position - bodyPosition).ProjectOntoPlane(armature.transform.up).magnitude;
-            var projectedPoint = bodyPosition - distance * feetUp.normalized;
-            //blue sphere
+            var toFootPlane = Vector3.zero;
+            foreach (var foot in footList)
+            {
+                if (!foot.isHovering)
+                    toFootPlane += Vector3.Project(foot1.transform.position - bodyPosition, -feetUp);
+            }
+            toFootPlane /= (footList.Count - LegManager.instance.GetNUmHovering());
+
+            var pointOnFeetPlane = bodyPosition + toFootPlane;
             
-            
-            // box cast to check for obstacles under/in the spider
             var boxSize = new Vector3(2.5f, .5f, 2.5f);
             boxCastOrigin = armature.transform.position + armature.transform.up;
-            var numOverlaps = Physics.OverlapBoxNonAlloc(boxCastOrigin, boxSize / 2, new Collider[1], armature.transform.rotation, layer);
-            Vector3 contact;
-            if (numOverlaps > 0) //collider in the boxCast
+            if (Physics.BoxCast(boxCastOrigin, boxSize / 2, -armature.transform.up, out var hit,
+                         armature.transform.rotation, 4, layer))
             {
-                contact = boxCastOrigin;
+                pointOnFeetPlane += Vector3.Project(hit.point - pointOnFeetPlane, armature.transform.up);
             }
-            else if (Physics.BoxCast(boxCastOrigin, boxSize / 2, -armature.transform.up, out var hit,
-                         armature.transform.rotation, 5, layer))
-            {
-                contact = hit.point;
-            }
-            else contact = projectedPoint;
-            projectedPoint += Vector3.Project(contact - projectedPoint, armature.transform.up);
             //////////////boxCast ended
             
             
-            var correctedPosition = projectedPoint + DistFromFeet * feetUp.normalized;
+            var correctedPosition = pointOnFeetPlane + DistFromFeet * feetUp.normalized;
 
             if (Vector3.Distance(armature.transform.position, correctedPosition) > .01f)
             {
@@ -264,16 +261,6 @@ public class SpiderController : MonoBehaviour
         armature.transform.position += target.normalized * (walkSpeed * Time.deltaTime);
     }
     
-    float NormalizeAngle(float angle)
-    {
-        angle = angle % 360;
-        if (angle > 180)
-            angle -= 360;
-        else if (angle < -180)
-            angle += 360;
-        return angle;
-    }
-
     private void OnDrawGizmos()
     {
         // Gizmos.color = Color.red;
@@ -289,12 +276,10 @@ public class SpiderController : MonoBehaviour
         // Gizmos.matrix = rotationMatrix;
         // Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
         
-        Gizmos.color = Color.cyan;
-        Gizmos.DrawSphere(gizmosVector4, .25f);
-        
-        Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + -armature.transform.up);
-        Handles.DrawAAPolyLine(armature.transform.position, gizmosVector4);
-        Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + gizmosVector);
+        // Gizmos.color = Color.cyan;
+        // Gizmos.DrawSphere(gizmosVector4, .25f);
+        //
+        // Handles.DrawAAPolyLine(gizmosVector4, gizmosVector4 + gizmosVector3*5);
         
         
     }
