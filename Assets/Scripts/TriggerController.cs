@@ -20,10 +20,10 @@ public class TriggerController : MonoBehaviour
         }
     }
 
-    public float timeOnGround = 0;
-    private void OnTriggerStay(Collider other)
-    {
-        timeOnGround += Time.deltaTime;
-        // Debug.Log(timeOnGround);
-    }
+    // public float timeOnGround = 0;
+    // private void OnTriggerStay(Collider other)
+    // {
+    //     timeOnGround += Time.deltaTime;
+    //     // Debug.Log(timeOnGround);
+    // }
 }

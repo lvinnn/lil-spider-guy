@@ -82,8 +82,8 @@ public class IkLegSolver : MonoBehaviour
 
         if (float.IsNaN(angle)) angle = 0;
 
-        Vector3 v = target.transform.position - joint1.transform.position;
-        Vector3 right = Vector3.ProjectOnPlane(target.transform.position-upperLeg.transform.position, armature.transform.up);
+        var v = target.transform.position - joint1.transform.position;
+        var right = Vector3.ProjectOnPlane(target.transform.position-upperLeg.transform.position, armature.transform.up);
         right = Vector3.Cross(right, armature.transform.up);
         v = Quaternion.AngleAxis(angle, right) * v;
         v = v.normalized * len;
@@ -105,8 +105,8 @@ public class IkLegSolver : MonoBehaviour
 
     void RotateTowardsTarget(GameObject joint, GameObject endRef, Vector3 target, int lowerJointLimit, int upperJointLimit)
     {
-        Vector3 toTarget = (target - joint.transform.position); //to IK bone vector
-        Vector3 parentUp = joint.transform.parent.transform.up; //local up vector basically
+        var toTarget = (target - joint.transform.position); //to IK bone vector
+        var parentUp = joint.transform.parent.transform.up; //local up vector basically
 
 
         ////limit angles by jointLimit
@@ -138,21 +138,21 @@ public class IkLegSolver : MonoBehaviour
         joint.transform.rotation = Quaternion.AngleAxis(angle, cross) * joint.transform.rotation;
     }
 
-    void ClampTarget(float angle, Vector3 toTarget, Vector3 axis, float limit) {
-
-        if (Mathf.Abs(angle) > limit)
-        {
-            // Calculate the rotation required to limit the angle
-            float excessAngle = Mathf.Abs(angle) - limit;
-
-            // Create a rotation that rotates toTarget by the necessary angle to limit it
-            Quaternion rotation = Quaternion.AngleAxis(-excessAngle * Mathf.Sign(angle), axis);
-            //Debug.Log(rotation);
-            Vector3 clampedToTarget = rotation * toTarget;
-
-            target.transform.position = armature.transform.position + clampedToTarget;
-        }
-    }
+    // void ClampTarget(float angle, Vector3 toTarget, Vector3 axis, float limit) {
+    //
+    //     if (Mathf.Abs(angle) > limit)
+    //     {
+    //         // Calculate the rotation required to limit the angle
+    //         float excessAngle = Mathf.Abs(angle) - limit;
+    //
+    //         // Create a rotation that rotates toTarget by the necessary angle to limit it
+    //         Quaternion rotation = Quaternion.AngleAxis(-excessAngle * Mathf.Sign(angle), axis);
+    //         //Debug.Log(rotation);
+    //         Vector3 clampedToTarget = rotation * toTarget;
+    //
+    //         target.transform.position = armature.transform.position + clampedToTarget;
+    //     }
+    // }
 
     float NormalizeAngle(float angle)
     {

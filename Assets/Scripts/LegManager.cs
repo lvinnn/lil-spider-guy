@@ -1,9 +1,10 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class LegManager : MonoBehaviour
 {
-    public static LegManager Instance;
+    public static LegManager instance;
 
     public IkFeetSolver foot1;
     public IkFeetSolver foot2;
@@ -11,22 +12,17 @@ public class LegManager : MonoBehaviour
     public IkFeetSolver foot4;
     public GameObject root;
 
-    public int lastMoved;
-
-    [SerializeField] private List<IkFeetSolver> footList = new List<IkFeetSolver>();
-    //[SerializeField] private List<float> footDistances = new List<float> { 0f, 0f, 0f, 0f };
-
-    //[SerializeField] private float maxFootDist;
+    public List<IkFeetSolver> footList = new List<IkFeetSolver>();
 
     //a leg is currently moving
     [SerializeField] private bool anyLegMoving = false;
     [SerializeField] private float timeSinceStopped;
 
-    void Awake()
+    private void Awake()
     {
-        if (Instance == null)
+        if (instance == null)
         {
-            Instance = this;
+            instance = this;
         }
         else
         {
@@ -40,6 +36,17 @@ public class LegManager : MonoBehaviour
         footList.Add(foot2);
         footList.Add(foot3);
         footList.Add(foot4);
+    }
+
+    public int GetNUmHovering()
+    {
+        var count = 0;
+        foreach (var foot in new[] {foot1, foot2, foot3, foot4})
+        {
+            if (foot.isHovering) count++;
+        }
+
+        return count;
     }
 
     public void SetMoving(bool b)

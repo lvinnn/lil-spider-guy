@@ -31,6 +31,7 @@ public class IkFeetSolver : MonoBehaviour
     //debugging
     private Vector3 gizmosTargetRed;
     private Vector3 gizmosTargetBlue;
+    private Vector3 gizmosTargetBlue2;
     private Vector3 gizmosTargetWhite;
     private Vector3 handleStart;
     private Vector3 handleEnd;
@@ -69,19 +70,19 @@ public class IkFeetSolver : MonoBehaviour
         var distFromSafe = Vector3.Distance(safePosition, anchorPosition);
 
         //check if another leg is moving
-        if (!CheckIfSafe() && (oppFoot.isMoving || !LegManager.Instance.GetAnyLegMoving()))
+        if (!CheckIfSafe() && (oppFoot.isMoving || !LegManager.instance.GetAnyLegMoving()))
         {
             //find point inside safe zone biased towards target direction
             var tVector = (SpiderController.instance.target);
             var targetPosition = safePosition + (tVector).normalized * (.6f * SafeRadius);
             //find thing to step on
-            LegManager.Instance.SetTime(0);
+            LegManager.instance.SetTime(0);
             CastRay(targetPosition, walkSpeed);
         }
 
         //return to idle position
-        if (LegManager.Instance.GetAnyLegMoving()) return;
-        if (LegManager.Instance.GetTime() > .2f && !SpiderController.instance.isWalking && distFromSafe > IdleRadius)
+        if (LegManager.instance.GetAnyLegMoving()) return;
+        if (LegManager.instance.GetTime() > .2f && !SpiderController.instance.isWalking && distFromSafe > IdleRadius)
         {
             CastRay(safePosition, idleResetSpeed);
         }
@@ -116,44 +117,63 @@ public class IkFeetSolver : MonoBehaviour
         }
 
         //find ground to step on
-
         var horizontalDir=
             (armature.transform.position - safeZone.transform.position).ProjectOntoPlane(armature.transform.up).normalized;
         var horizontalPos = (safeZone.transform.position - armature.transform.position)*1.2f + armature.transform.position;
         handleStart = horizontalPos; //handles drawline
         handleEnd = handleStart + (horizontalDir)*5; //handles drawline
 
+        //Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer)
         Vector3? point = null;
-        if (Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer) || //horizontal ray above
-            FindWire(raySource, out point) || // straight down
+        // var hit = new RaycastHit();
+        if (Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer) ||
+            FindWall(out point) || //horizontal ray above
+            FindGround(raySource, out point) || // straight down
             Physics.Raycast(horizontalPos, horizontalDir, out hit,
                 (armature.transform.position - safeZone.transform.position).magnitude-SafeRadius, layer)) //horizontal ray underneath
         {
-            LegManager.Instance.SetMoving(true);
+            LegManager.instance.SetMoving(true);
             isMoving = true;
             gizmosTargetRed = point != null ? point.Value : hit.point;
             StartCoroutine(MoveLeg(gizmosTargetRed, legSpeed));
             isHovering = false;
-            Debug.Log("not hovering anymore");
             //found a spot to stand on
         }
         else
         {
             var pos = armature.transform.position + (safeZone.transform.position - armature.transform.position)*.25f - armature.transform.up*1.5f;
-            gizmosTargetWhite = pos;
             if ((transform.position - pos).magnitude > 1)
                 StartCoroutine(MoveLeg(pos, legSpeed));
             isHovering = true;
-            Debug.Log("is hovering");
             //LEG IS HOVERING
         }
     }
 
-
-    private bool FindWire(Vector3 raySource, out Vector3? rayPoint)
+    private bool FindWall(out Vector3? rayPoint)
     {
-        var startPoint = Quaternion.AngleAxis(SafeAngle/2,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
-        var endPoint = Quaternion.AngleAxis(-SafeAngle/2,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+        var startPoint = Quaternion.AngleAxis(SafeAngle,armature.transform.up) * (safeZone.transform.position - armature.transform.position) + armature.transform.position;
+        var endPoint = Quaternion.AngleAxis(-SafeAngle,armature.transform.up) * (safeZone.transform.position - armature.transform.position) + armature.transform.position;
+        startPoint += armature.transform.up*2;
+        endPoint += armature.transform.up*2;
+
+        var a = Physics.Raycast(startPoint, endPoint - startPoint, out var hit, (endPoint - startPoint).magnitude, layer);
+        var b = Physics.Raycast(endPoint, startPoint - endPoint, out var hit2, (startPoint - endPoint).magnitude, layer);
+
+        gizmosTargetBlue = startPoint;
+        gizmosTargetBlue2 = endPoint;
+        
+        if(a && b) rayPoint = (hit.point + hit2.point)/2;
+        else if (b) rayPoint = hit2.point;
+        else if (a) rayPoint = hit.point;
+        else rayPoint = null;
+        gizmosTargetWhite = rayPoint != null ? rayPoint.Value : Vector3.zero;
+        return a || b;
+    }
+
+    private bool FindGround(Vector3 raySource, out Vector3? rayPoint)
+    {
+        var startPoint = Quaternion.AngleAxis(SafeAngle,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+        var endPoint = Quaternion.AngleAxis(-SafeAngle,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
 
         var inc = 0f;
         var prev = .5f;
@@ -195,8 +215,8 @@ public class IkFeetSolver : MonoBehaviour
         }
 
         anchorPosition = transform.position;
-        LegManager.Instance.lastMoved = Int32.Parse(name.Substring(name.Length-1));
-        LegManager.Instance.SetMoving(false);
+        // LegManager.Instance.lastMoved = Int32.Parse(name.Substring(name.Length-1));
+        LegManager.instance.SetMoving(false);
         isMoving = false;
     }
 
@@ -215,8 +235,12 @@ public class IkFeetSolver : MonoBehaviour
         Gizmos.DrawWireSphere(gizmosTargetRed, .5f);
         
         Gizmos.color = Color.white;
-        Gizmos.DrawSphere(gizmosTargetWhite, .5f);
+        Gizmos.DrawSphere(gizmosTargetWhite, .25f);
 
+        // Gizmos.color = Color.blue;
+        // Gizmos.DrawSphere(gizmosTargetBlue, .25f);
+        // Gizmos.DrawSphere(gizmosTargetBlue2, .25f);
+        
         Handles.color = Color.magenta;
         Handles.DrawAAPolyLine(handleStart, handleEnd);
     }
