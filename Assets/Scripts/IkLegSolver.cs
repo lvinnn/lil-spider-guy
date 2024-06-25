@@ -1,6 +1,5 @@
 using System;
 using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine;
 
 public class IkLegSolver : MonoBehaviour
@@ -16,37 +15,30 @@ public class IkLegSolver : MonoBehaviour
     public GameObject target;
 
     //constraints?
-    private int joint3Limit = -60;
+    private int Joint3Limit { get; } = -40;
 
     //internal measurements
     private float upperLegLen;
     private float lowerLegLen;
 
 
-    [Header("other stuff")]
-    public int iterations = 1;
-    public float threshold = 0.001f;
-    private float initYRotation;
+    // private Vector3 debugStart;
+    // private Vector3 debugTarget;
+    // private Vector3 gizmosTarget1;
+    // private Vector3 gizmosTarget2;
+    // private Vector3 gizmosTarget3;
 
-
-    private Vector3 debugStart;
-    private Vector3 debugTarget;
-    private Vector3 gizmosTarget1;
-    private Vector3 gizmosTarget2;
-    private Vector3 gizmosTarget3;
-
-    void Start()
+    private void Start()
     {
         lowerLeg = upperLeg.transform.GetChild(0).gameObject;
         foot = lowerLeg.transform.GetChild(0).gameObject;
         footEnd = foot.transform.GetChild(0).gameObject;
-        initYRotation = NormalizeAngle(upperLeg.transform.localEulerAngles.y);
 
         upperLegLen = Vector3.Distance(upperLeg.transform.position, lowerLeg.transform.position);
         lowerLegLen = Vector3.Distance(lowerLeg.transform.position, foot.transform.position);
     }
 
-    void Update()
+    private void Update()
     {
         float angle;
 
@@ -63,21 +55,21 @@ public class IkLegSolver : MonoBehaviour
         SolveIK();
     }
 
-    void SolveIK()
+    private void SolveIK()
     {
         // Calculate current distance to target
-        RotateTowardsTarget(foot, footEnd, target.transform.position, joint3Limit, 0);
+        RotateTowardsTarget(foot, footEnd, target.transform.position, Joint3Limit, 0);
         RotateJoint(upperLeg, upperLegLen, lowerLeg);
         RotateJoint(lowerLeg, lowerLegLen, foot);
 
     }
 
-    void RotateJoint(GameObject joint1, float len, GameObject joint2) //upperLeg, lowerLeg
+    private void RotateJoint(GameObject joint1, float len, GameObject joint2) //upperLeg, lowerLeg
     {
-        float distToTarget = Vector3.Distance(joint1.transform.position, target.transform.position);
-        float lf = Vector3.Distance(joint2.transform.position, footEnd.transform.position);
+        var distToTarget = Vector3.Distance(joint1.transform.position, target.transform.position);
+        var lf = Vector3.Distance(joint2.transform.position, footEnd.transform.position);
 
-        float angle = (float)Math.Acos((len * len + distToTarget * distToTarget - lf * lf) / (2 * len * distToTarget));
+        var angle = (float)Math.Acos((len * len + distToTarget * distToTarget - lf * lf) / (2 * len * distToTarget));
         angle = angle * 180 / math.PI;
 
         if (float.IsNaN(angle)) angle = 0;
@@ -92,14 +84,14 @@ public class IkLegSolver : MonoBehaviour
 
 
         //gizmos
-        if (joint1 == upperLeg)
-        {
-            gizmosTarget1 = upperLeg.transform.position + v;
-        }
-        else
-        {
-            gizmosTarget2 = lowerLeg.transform.position + v;
-        }
+        // if (joint1 == upperLeg)
+        // {
+        //     gizmosTarget1 = upperLeg.transform.position + v;
+        // }
+        // else
+        // {
+        //     gizmosTarget2 = lowerLeg.transform.position + v;
+        // }
         
     }
 
@@ -110,7 +102,7 @@ public class IkLegSolver : MonoBehaviour
 
 
         ////limit angles by jointLimit
-        float angle = Vector3.SignedAngle(parentUp, toTarget, joint.transform.right);
+        var angle = Vector3.SignedAngle(parentUp, toTarget, joint.transform.right);
         ////Debug.Log(angle);
         if (angle < lowerJointLimit || angle > upperJointLimit)
         {
@@ -154,30 +146,20 @@ public class IkLegSolver : MonoBehaviour
     //     }
     // }
 
-    float NormalizeAngle(float angle)
-    {
-        angle = angle % 360;
-        if (angle > 180)
-            angle -= 360;
-        else if (angle < -180)
-            angle += 360;
-        return angle;
-    }
-
-    private void OnDrawGizmos()
-    {
-        //Handles.color = Color.blue;
-        //Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + gizmosTarget3);
-        //Handles.color = Color.red;
-        //Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + gizmosTarget2);
-        //Handles.color = Color.green;
-        //if (lowerLeg)
-        //    Handles.DrawAAPolyLine(lowerLeg.transform.position, lowerLeg.transform.position + gizmosTarget1);
-        Gizmos.color = Color.red;
-        Gizmos.DrawSphere(gizmosTarget1, .1f);
-        Gizmos.color = Color.blue;
-        Gizmos.DrawSphere(gizmosTarget2, .1f);
-        //Gizmos.DrawSphere(armature.transform.position + gizmosTarget3, .3f);
-    }
+    // private void OnDrawGizmos()
+    // {
+    //     //Handles.color = Color.blue;
+    //     //Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + gizmosTarget3);
+    //     //Handles.color = Color.red;
+    //     //Handles.DrawAAPolyLine(armature.transform.position, armature.transform.position + gizmosTarget2);
+    //     //Handles.color = Color.green;
+    //     //if (lowerLeg)
+    //     //    Handles.DrawAAPolyLine(lowerLeg.transform.position, lowerLeg.transform.position + gizmosTarget1);
+    //     Gizmos.color = Color.red;
+    //     Gizmos.DrawSphere(gizmosTarget1, .1f);
+    //     Gizmos.color = Color.blue;
+    //     Gizmos.DrawSphere(gizmosTarget2, .1f);
+    //     //Gizmos.DrawSphere(armature.transform.position + gizmosTarget3, .3f);
+    // }
 
 }

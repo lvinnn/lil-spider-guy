@@ -84,7 +84,6 @@ public class SpiderController : MonoBehaviour
             
             if (numHovering <= 1) feetUp = MatchRotationWithFeet(); // if mostly on the ground
             else if (numHovering <= 3) RotateToAnchoredLegs(numHovering);// if walked over an edge
-            else Debug.Log("FREE BIRRRRDDD"); // 0 feet on the ground
             
             //adjust body's position based on feet and ground
             AdjustBodyPosition(feetUp);
@@ -168,7 +167,8 @@ public class SpiderController : MonoBehaviour
     
     private void AlignWorldUp()
     {
-        var alignmentSpeed = Vector3.Angle(worldUp.transform.up, armature.transform.up) * 5;
+        var ang = Vector3.Angle(worldUp.transform.up, armature.transform.up);
+        var alignmentSpeed = Mathf.Clamp(Vector3.Angle(worldUp.transform.up, armature.transform.up) * 3, 5, 150);
         worldUp.transform.rotation = Quaternion.RotateTowards(worldUp.transform.rotation, armature.transform.rotation,
             Time.deltaTime * alignmentSpeed);
     }
@@ -217,7 +217,6 @@ public class SpiderController : MonoBehaviour
     private void AdjustBodyPosition(Vector3 feetUp)
     {
         //find distance between feet plane and armature
-            //I was gonna change this but it honestly works so I'll just leave it i guess??
             var bodyPosition = armature.transform.position;
             var toFootPlane = Vector3.zero;
             foreach (var foot in footList)
@@ -229,12 +228,15 @@ public class SpiderController : MonoBehaviour
 
             var pointOnFeetPlane = bodyPosition + toFootPlane;
             
+            //boxcast down
             var boxSize = new Vector3(2.5f, .5f, 2.5f);
-            boxCastOrigin = armature.transform.position + armature.transform.up;
+            boxCastOrigin = armature.transform.position + armature.transform.up*2;
             if (Physics.BoxCast(boxCastOrigin, boxSize / 2, -armature.transform.up, out var hit,
                          armature.transform.rotation, 4, layer))
             {
-                pointOnFeetPlane += Vector3.Project(hit.point - pointOnFeetPlane, armature.transform.up);
+                if (!Physics.BoxCast(armature.transform.position, boxSize / 2, armature.transform.up,
+                        armature.transform.rotation, 1, layer))
+                    pointOnFeetPlane += Vector3.Project(hit.point - pointOnFeetPlane, armature.transform.up);
             }
             //////////////boxCast ended
             

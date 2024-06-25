@@ -123,12 +123,14 @@ public class IkFeetSolver : MonoBehaviour
         handleStart = horizontalPos; //handles drawline
         handleEnd = handleStart + (horizontalDir)*5; //handles drawline
 
-        //Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer)
         Vector3? point = null;
-        // var hit = new RaycastHit();
-        if (Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer) ||
-            FindWall(out point) || //horizontal ray above
-            FindGround(raySource, out point) || // straight down
+        var hit = new RaycastHit();
+        //Physics.Raycast(armature.transform.position + armature.transform.up*2, -horizontalDir, out var hit, 6, layer) ||
+        var source = (raySource - armature.transform.position) * .05f + armature.transform.position +
+                     armature.transform.up * 2;
+        var source2 = raySource + armature.transform.up * 3;
+        if (FindWall(source, out point, true, 5) || //horizontal ray above
+            FindWall(source2, out point, false, 5) || // straight down
             Physics.Raycast(horizontalPos, horizontalDir, out hit,
                 (armature.transform.position - safeZone.transform.position).magnitude-SafeRadius, layer)) //horizontal ray underneath
         {
@@ -149,31 +151,10 @@ public class IkFeetSolver : MonoBehaviour
         }
     }
 
-    private bool FindWall(out Vector3? rayPoint)
+    private bool FindWall(Vector3 raySource, out Vector3? rayPoint, bool horizontal, float dist)
     {
-        var startPoint = Quaternion.AngleAxis(SafeAngle,armature.transform.up) * (safeZone.transform.position - armature.transform.position) + armature.transform.position;
-        var endPoint = Quaternion.AngleAxis(-SafeAngle,armature.transform.up) * (safeZone.transform.position - armature.transform.position) + armature.transform.position;
-        startPoint += armature.transform.up*2;
-        endPoint += armature.transform.up*2;
-
-        var a = Physics.Raycast(startPoint, endPoint - startPoint, out var hit, (endPoint - startPoint).magnitude, layer);
-        var b = Physics.Raycast(endPoint, startPoint - endPoint, out var hit2, (startPoint - endPoint).magnitude, layer);
-
-        gizmosTargetBlue = startPoint;
-        gizmosTargetBlue2 = endPoint;
-        
-        if(a && b) rayPoint = (hit.point + hit2.point)/2;
-        else if (b) rayPoint = hit2.point;
-        else if (a) rayPoint = hit.point;
-        else rayPoint = null;
-        gizmosTargetWhite = rayPoint != null ? rayPoint.Value : Vector3.zero;
-        return a || b;
-    }
-
-    private bool FindGround(Vector3 raySource, out Vector3? rayPoint)
-    {
-        var startPoint = Quaternion.AngleAxis(SafeAngle,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
-        var endPoint = Quaternion.AngleAxis(-SafeAngle,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+        var startPoint = Quaternion.AngleAxis(45,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
+        var endPoint = Quaternion.AngleAxis(-45,armature.transform.up) * (raySource - armature.transform.position) + armature.transform.position;
 
         var inc = 0f;
         var prev = .5f;
@@ -184,14 +165,15 @@ public class IkFeetSolver : MonoBehaviour
             var source = Vector3.Lerp(startPoint, endPoint, prev + a);
             prev += a;
             count++;
-            if (Physics.Raycast(source + armature.transform.up * 3, -armature.transform.up, out var hit, 5, layer))
+            var dir = horizontal
+                ? (source - armature.transform.position).ProjectOntoPlane(armature.transform.up) : -armature.transform.up;
+            if (Physics.Raycast(source, dir, out var hit, dist, layer))
             {
                 rayPoint = hit.point;
                 return true;
             }
             inc += 1/NumRays;
         }
-
         rayPoint = null;
         return false;
     }
