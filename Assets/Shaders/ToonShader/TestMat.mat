@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Toon
-  m_Shader: {fileID: 4800000, guid: d507208a6c93955428aae2f779de58b3, type: 3}
+  m_Name: TestMat
+  m_Shader: {fileID: 4800000, guid: 49a1ffef9d7c39f47a50dbb97967b698, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -22,14 +22,16 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
-    m_TexEnvs: []
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _FresnelPower: 7.55
-    - _Threshold1: 0.694
-    - _Threshold2: 0.642
-    - _Threshold3: 0.536
-    - _Threshold4: 0.46
+    - _Smoothness: 1
+    - _VoronoiScale: 46.91
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _ColorTint: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
