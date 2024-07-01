@@ -84,22 +84,20 @@ Shader "Custom/ToonPostProcess"
                 // Apply toon shading and Voronoi pattern
                 float luminance = dot(col.rgb, float3(0.2126, 0.7152, 0.0722));
 
-                // for (int i=0.1f; i<1; i += .5f)
-                // {
-                //     if(luminance < i)
-                //     col.rgb = 1 - voronoiPattern < 1-i ? 0 : 1;
-                // }
-                
-                if(luminance < .1)
+                if(luminance == 0)
+                {
+                    
+                }
+                else if(luminance < .1)
                 {
                     col.rgb = voronoiPattern < .3f ? 0 : 1;
-                    col.rgb *= voronoiPattern2 < .3f ? 0 : 1;
+                    col.rgb *= voronoiPattern2 < .3f ? 0 : .05f;
                 }
                 else if(luminance < .6)
-                    col.rgb = voronoiPattern < .22f ? 0 : 1;
-                // // else
-                //     col.rgb = 1 - voronoiPattern < .65f ? 0 : 1;
-
+                    col.rgb = voronoiPattern < .22f ? .2 : .7;
+                // else
+                    // col.rgb = 1 - voronoiPattern < .65f ? 0 : 1;
+                
                 return col;
             }
             ENDCG
