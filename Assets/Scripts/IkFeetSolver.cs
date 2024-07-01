@@ -18,7 +18,7 @@ public class IkFeetSolver : MonoBehaviour
     private GameObject armature;
 
     //spider parameters
-    private float SafeRadius { get; } = 2f;
+    private float SafeRadius { get; } = 1.9f;
     private float SafeAngle { get; } = 40f;
     private float IdleRadius { get; } = 0.5f;
     private float InitialWalkSpeed { get; } = 30f;
