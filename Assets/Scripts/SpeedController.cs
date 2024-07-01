@@ -16,10 +16,10 @@ public class SpeedController : MonoBehaviour
             factor *= 2;
         else if(Input.GetKeyUp(KeyCode.LeftShift)) //unsprint
             factor /= 2;
-        else if (Input.GetKeyDown(KeyCode.Mouse0))
-            factor /= 33f;
-        else if (Input.GetKeyUp(KeyCode.Mouse0))
-            factor *= 33;
+        // else if (Input.GetKeyDown(KeyCode.Mouse0))
+        //     factor /= 33f;
+        // else if (Input.GetKeyUp(KeyCode.Mouse0))
+        //     factor *= 33;
         
     }
 

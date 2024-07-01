@@ -5,8 +5,9 @@ I'm not sure where I'm gonna go with this demo, but I'll figure that out when I 
 
 ## ToDo:
 - Improve camera damping / camera settings
-- good lighting/shaders
-- unity particle system? add some hanging bits to help with orientation
-- Jumping / ragdolls (maybe?)
-- give spider webs
-- fix ability to phase through walls somehow
+- the map with smoothed normals has like a million verts, fix that
+- fix shader to deal with multiple lights
+- add some enemies?
+- comic style hits/ bang pow type shit
+- interactables - elevator, portals, buttons etc
+- some sort of UI perhaps

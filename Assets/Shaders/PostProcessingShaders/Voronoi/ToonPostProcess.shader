@@ -72,21 +72,22 @@ Shader "Custom/ToonPostProcess"
 
             fixed4 frag(v2f i) : SV_Target
             {
+                fixed4 col = tex2D(_MainTex, i.uv);
+                if (col.r == 1.0 && col.g == 0.0 && col.b == 0.0 && col.a == 1.0) 
+                    return col;
+                
                 float2 screenUV = i.uv;
                 screenUV.x *= _ScreenParams.x / _ScreenParams.y; // Adjust for aspect ratio
 
                 float voronoiPattern = voronoi(screenUV, _VoronoiScale);
                 float voronoiPattern2 = voronoi(screenUV+float2(1,1), _VoronoiScale);
-                
-
-                fixed4 col = tex2D(_MainTex, i.uv);
 
                 // Apply toon shading and Voronoi pattern
                 float luminance = dot(col.rgb, float3(0.2126, 0.7152, 0.0722));
 
                 if(luminance == 0)
                 {
-                    
+                    //shadow
                 }
                 else if(luminance < .1)
                 {

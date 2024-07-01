@@ -10,6 +10,7 @@ public class SecurityCamManager : MonoBehaviour
     
     public Transform target;
     public float lookSpeed = 10f;
+    public GameObject light;
 
     private void Awake()
     {
@@ -30,6 +31,7 @@ public class SecurityCamManager : MonoBehaviour
         for (int i = 0; i < transform.childCount; i++)
         {
             transform.GetChild(i).AddComponent<SecurityCamController>();
+            
         }
     }
 

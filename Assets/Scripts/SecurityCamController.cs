@@ -17,6 +17,8 @@ public class SecurityCamController : MonoBehaviour
     private float lookSpeed;
     private Transform target;
 
+    private Vector3 gizmosTarget1;
+
     // Start is called before the first frame update
     
     void Start()
@@ -24,6 +26,8 @@ public class SecurityCamController : MonoBehaviour
         neck = transform.GetChild(0).GetChild(0).GetChild(0);
         head = neck.GetChild(0);
         headEnd = head.GetChild(0);
+        Instantiate(SecurityCamManager.instance.light, headEnd);
+        
 
         idleForward = (headEnd.position - head.position);
         neckForwardOffset = Quaternion.AngleAxis(-Vector3.Angle(idleForward, neck.forward), Vector3.up);
@@ -45,9 +49,11 @@ public class SecurityCamController : MonoBehaviour
     private bool canSee(Transform target)
     {
         var toTarget = (target.position - head.position).ProjectOntoPlane(Vector3.up);
-        var d = target.position - headEnd.position;
+        var d = target.position - head.position;
+        
+        gizmosTarget1 = d;
         return (Vector3.Angle(idleForward.ProjectOntoPlane(Vector3.up), toTarget) < 80) &&
-               !Physics.Raycast(head.position, d, d.magnitude-1);
+               !Physics.Raycast(head.position, d, d.magnitude);
     }
 
     private void setRotation(Vector3 dir, float speed)
@@ -64,7 +70,8 @@ public class SecurityCamController : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        if(headEnd != null)
-            Handles.DrawAAPolyLine(headEnd.position, headEnd.position + idleForward*4);
+        // if(headEnd != null)
+        //     Handles.DrawAAPolyLine(head.position, head.position + gizmosTarget1);
+        
     }
 }
